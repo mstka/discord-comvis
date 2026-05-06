@@ -5,7 +5,7 @@ export const api = axios.create({ baseURL: '/api' })
 // Attach JWT from localStorage on every request
 api.interceptors.request.use((config) => {
   try {
-    const raw = localStorage.getItem('comvis-auth')
+    const raw = localStorage.getItem('cbreview-auth')
     if (raw) {
       const { state } = JSON.parse(raw)
       if (state?.token) {
