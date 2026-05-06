@@ -45,5 +45,9 @@ desktop.ini
 *.swp
 *.swo
 
-# Railway / Vercel
+# Vercel
 .vercel/
+
+# Docker / compose secrets
+.env
+docker-compose.override.yml

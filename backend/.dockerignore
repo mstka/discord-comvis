@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+*.pyo
+.env
+.venv/
+venv/
+data/
+*.db
+*.db-shm
+*.db-wal
+*.log
+.git/
+.gitignore

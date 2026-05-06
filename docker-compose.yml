@@ -1,0 +1,54 @@
+version: "3.9"
+
+services:
+  # ── PostgreSQL ──────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB:       discord_comvis
+      POSTGRES_USER:     comvis
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test:     ["CMD-SHELL", "pg_isready -U comvis -d discord_comvis"]
+      interval: 10s
+      timeout:  5s
+      retries:  5
+    # Not exposed to host — only backend can reach it via internal network
+
+  # ── FastAPI Backend ─────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file: ./backend/.env           # local overrides (not committed)
+    environment:
+      # Override DATABASE_URL to point at the postgres container
+      DATABASE_URL: postgresql+asyncpg://comvis:${POSTGRES_PASSWORD}@postgres:5432/discord_comvis
+      # CORS: same-origin via nginx, keep localhost for direct dev access
+      CORS_ORIGINS:  "http://localhost,http://localhost:80,http://127.0.0.1"
+      HOST:          "0.0.0.0"
+      PORT:          "8000"
+      LOG_LEVEL:     "info"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    # Not exposed to host — only frontend nginx reaches it via internal network
+
+  # ── React Frontend (Nginx) ──────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "80:80"       # HTTP
+      # - "443:443"   # Uncomment after adding SSL cert volume below
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
