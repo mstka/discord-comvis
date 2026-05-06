@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { useNotificationStore } from '../store/notificationStore'
 
 export const api = axios.create({ baseURL: '/api' })
 
@@ -25,13 +26,11 @@ api.interceptors.response.use(
       window.location.href = '/login'
     }
     if (err?.response?.status === 403) {
-      import('../store/notificationStore').then(({ useNotificationStore }) => {
-        useNotificationStore.getState().push(
-          'forbidden',
-          '操作が許可されていません',
-          'この操作には管理者権限が必要です。管理者パスワードでログインし直してください。',
-        )
-      })
+      useNotificationStore.getState().push(
+        'forbidden',
+        '操作が許可されていません',
+        'この操作には管理者権限が必要です。管理者パスワードでログインし直してください。',
+      )
     }
     return Promise.reject(err)
   }

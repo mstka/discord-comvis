@@ -14,6 +14,25 @@
 import { Document, Page, Text, View, StyleSheet, Font, pdf } from '@react-pdf/renderer'
 import type { EvaluationReport, RelationshipAxes } from '../api/client'
 
+// ── Japanese font registration ────────────────────────────────────────────────
+// Noto Sans JP — supports full Japanese character set
+Font.register({
+  family: 'NotoSansJP',
+  fonts: [
+    {
+      src: 'https://fonts.gstatic.com/s/notosansjp/v53/-F6jfjtqLzI2JPCgQBnw7HFyzSD-AsregP8VFBEj75s.ttf',
+      fontWeight: 'normal',
+    },
+    {
+      src: 'https://fonts.gstatic.com/s/notosansjp/v53/-F6jfjtqLzI2JPCgQBnw7HFyzSD-AsregP8VFJEt4L1.ttf',
+      fontWeight: 'bold',
+    },
+  ],
+})
+
+// Suppress hyphenation (not applicable to Japanese)
+Font.registerHyphenationCallback((word) => [word])
+
 // ── styles ────────────────────────────────────────────────────────────────────
 
 const C = {
@@ -29,35 +48,37 @@ const C = {
   border: '#E5E7EB',
 } as const
 
+const FONT = 'NotoSansJP'
+
 const s = StyleSheet.create({
-  page: { backgroundColor: C.white, padding: 40, fontFamily: 'Helvetica' },
+  page: { backgroundColor: C.white, padding: 40, fontFamily: FONT },
 
   // header
   headerBand: { backgroundColor: C.primary, borderRadius: 8, padding: '18 20', marginBottom: 20, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
   headerLeft: {},
-  headerTitle: { color: C.white, fontSize: 18, fontFamily: 'Helvetica-Bold', marginBottom: 3 },
+  headerTitle: { color: C.white, fontSize: 18, fontFamily: FONT, fontWeight: 'bold', marginBottom: 3 },
   headerSub: { color: 'rgba(255,255,255,0.75)', fontSize: 9 },
   headerRight: { alignItems: 'flex-end' },
   coeffLabel: { color: 'rgba(255,255,255,0.65)', fontSize: 8, marginBottom: 2 },
-  coeffValue: { color: C.white, fontSize: 26, fontFamily: 'Helvetica-Bold', letterSpacing: -0.5 },
+  coeffValue: { color: C.white, fontSize: 26, fontFamily: FONT, fontWeight: 'bold' },
   coeffSuffix: { color: 'rgba(255,255,255,0.75)', fontSize: 10 },
 
   // section
   section: { marginBottom: 16 },
-  sectionTitle: { fontSize: 10, fontFamily: 'Helvetica-Bold', color: C.dark, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 },
+  sectionTitle: { fontSize: 9, fontFamily: FONT, fontWeight: 'bold', color: C.muted, marginBottom: 8, letterSpacing: 0.5 },
   divider: { height: 1, backgroundColor: C.border, marginBottom: 12 },
 
   // row
   row2: { flexDirection: 'row', gap: 12, marginBottom: 16 },
   card: { flex: 1, backgroundColor: C.light, borderRadius: 6, padding: 12 },
   cardLabel: { fontSize: 8, color: C.muted, marginBottom: 2 },
-  cardValue: { fontSize: 18, fontFamily: 'Helvetica-Bold', color: C.dark },
+  cardValue: { fontSize: 18, fontFamily: FONT, fontWeight: 'bold', color: C.dark },
 
   // axis bar
   axisRow: { marginBottom: 6 },
   axisHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 2 },
   axisLabel: { fontSize: 8.5, color: C.mid },
-  axisScore: { fontSize: 8.5, fontFamily: 'Helvetica-Bold', color: C.dark },
+  axisScore: { fontSize: 8.5, fontFamily: FONT, fontWeight: 'bold', color: C.dark },
   barBg: { height: 6, backgroundColor: C.border, borderRadius: 3 },
   barFill: { height: 6, borderRadius: 3 },
 
@@ -74,7 +95,7 @@ const s = StyleSheet.create({
   bullet: { width: 14, height: 14, borderWidth: 1.5, borderColor: C.muted, borderRadius: 2, marginTop: 0.5 },
   checkText: { flex: 1, fontSize: 8.5, color: C.mid, lineHeight: 1.5 },
   qItem: { flexDirection: 'row', gap: 6, marginBottom: 4 },
-  qBullet: { fontSize: 8.5, color: C.primary, fontFamily: 'Helvetica-Bold' },
+  qBullet: { fontSize: 8.5, color: C.primary, fontFamily: FONT, fontWeight: 'bold' },
   qText: { flex: 1, fontSize: 8.5, color: C.mid, lineHeight: 1.5 },
 
   // footer
