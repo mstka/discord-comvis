@@ -12,6 +12,7 @@ import SettingsPage from './pages/Settings'
 import MemberView from './pages/MemberView'
 import ManagerView from './pages/ManagerView'
 import Login from './pages/Login'
+import NotificationToast from './components/NotificationToast'
 import { healthApi } from './api/client'
 import { useAuthStore } from './store/authStore'
 
@@ -182,6 +183,7 @@ export default function App() {
             }
           />
         </Routes>
+        <NotificationToast />
       </BrowserRouter>
     </QueryClientProvider>
   )

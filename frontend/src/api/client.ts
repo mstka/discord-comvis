@@ -16,13 +16,22 @@ api.interceptors.request.use((config) => {
   return config
 })
 
-// Redirect to /login on 401
+// Handle 401 (→ login) and 403 (→ forbidden toast)
 api.interceptors.response.use(
   (res) => res,
   (err) => {
     if (err?.response?.status === 401) {
-      localStorage.removeItem('comvis-auth')
+      localStorage.removeItem('cbreview-auth')
       window.location.href = '/login'
+    }
+    if (err?.response?.status === 403) {
+      import('../store/notificationStore').then(({ useNotificationStore }) => {
+        useNotificationStore.getState().push(
+          'forbidden',
+          '操作が許可されていません',
+          'この操作には管理者権限が必要です。管理者パスワードでログインし直してください。',
+        )
+      })
     }
     return Promise.reject(err)
   }
