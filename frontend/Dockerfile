@@ -3,29 +3,24 @@ FROM node:20-slim AS builder
 
 WORKDIR /app
 
-# Install curl for font download
-RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
-
 # Install JS dependencies first (layer cache)
 COPY package*.json ./
 RUN npm install --legacy-peer-deps
 
-# Download Noto Sans JP OTF (static, non-variable) into public/fonts/.
-# notofonts/japanese ships static OTF in fonts/otf/ — variable TTF in fonts/variable/
-# is NOT supported by @react-pdf/renderer's fontkit.
-RUN mkdir -p public/fonts && \
-    curl -fsSL --retry 3 \
-      "https://cdn.jsdelivr.net/gh/notofonts/japanese@main/fonts/otf/NotoSansJP-Regular.otf" \
-      -o public/fonts/NotoSansJP-Regular.otf && \
-    curl -fsSL --retry 3 \
-      "https://cdn.jsdelivr.net/gh/notofonts/japanese@main/fonts/otf/NotoSansJP-Bold.otf" \
-      -o public/fonts/NotoSansJP-Bold.otf && \
-    ls -lh public/fonts/ && \
-    echo "[fonts] Noto Sans JP OTF downloaded OK"
-
-# Copy source and build
+# Copy source
 COPY . .
+
+# Install IPA Ex Gothic — a static Japanese TTF from Debian package repos.
+# This runs AFTER COPY so that src files cannot overwrite the installed fonts.
+# ipaexg.ttf is a genuine static TrueType font (not variable) and is fully
+# supported by @react-pdf/renderer's fontkit.
+RUN apt-get update && apt-get install -y --no-install-recommends fonts-ipaexfont-gothic \
+    && mkdir -p public/fonts \
+    && cp /usr/share/fonts/opentype/ipaexfont-gothic/ipaexg.ttf public/fonts/NotoSansJP-Regular.ttf \
+    && cp /usr/share/fonts/opentype/ipaexfont-gothic/ipaexg.ttf public/fonts/NotoSansJP-Bold.ttf \
+    && ls -lh public/fonts/ \
+    && rm -rf /var/lib/apt/lists/*
+
 RUN npm run build
 
 # ── Stage 2: Serve with Nginx ─────────────────────────────────────────────────

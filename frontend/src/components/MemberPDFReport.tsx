@@ -20,8 +20,8 @@ import type { EvaluationReport, RelationshipAxes } from '../api/client'
 Font.register({
   family: 'NotoSansJP',
   fonts: [
-    { src: '/fonts/NotoSansJP-Regular.otf', fontWeight: 'normal' },
-    { src: '/fonts/NotoSansJP-Bold.otf',    fontWeight: 'bold'   },
+    { src: '/fonts/NotoSansJP-Regular.ttf', fontWeight: 'normal' },
+    { src: '/fonts/NotoSansJP-Bold.ttf',    fontWeight: 'bold'   },
   ],
 })
 
