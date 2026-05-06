@@ -35,7 +35,7 @@ export default function Login() {
           <div className="w-14 h-14 rounded-2xl bg-discord-blurple flex items-center justify-center mb-4 shadow-lg shadow-discord-blurple/30">
             <Bot size={28} className="text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-white">ComVis</h1>
+          <h1 className="text-2xl font-bold text-white">CBReview</h1>
           <p className="text-gray-500 text-sm mt-1">Discord コミュニケーション分析</p>
         </div>
 

@@ -27,7 +27,7 @@ export const useAuthStore = create<AuthState>()(
       login: (token, role) => set({ token, role }),
       logout: () => set({ token: null, role: null }),
     }),
-    { name: 'comvis-auth' },
+    { name: 'cbreview-auth' },
   ),
 )
 

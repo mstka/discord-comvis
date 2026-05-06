@@ -27,7 +27,7 @@ function RiskBadge({ level }: { level: 'high' | 'medium' }) {
     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
       level === 'high' ? 'bg-red-950 text-red-400 border border-red-800/60' : 'bg-amber-950 text-amber-400 border border-amber-800/60'
     }`}>
-      {level === 'high' ? '⚠ 高リスク' : '△ 中リスク'}
+      {level === 'high' ? '高リスク' : '中リスク'}
     </span>
   )
 }
@@ -156,7 +156,7 @@ export default function Dashboard() {
             </div>
           ) : (
             <div className="flex items-center justify-center h-20 text-gray-600 text-sm">
-              {risks === undefined ? '読み込み中...' : '負荷集中なし ✓'}
+              {risks === undefined ? '読み込み中...' : '負荷集中なし'}
             </div>
           )}
         </div>

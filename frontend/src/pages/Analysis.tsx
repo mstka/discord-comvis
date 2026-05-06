@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
+import { Check, Loader2, X, Circle, AlertTriangle } from 'lucide-react'
 import { analyzeApi, collectApi, createWS, healthApi } from '../api/client'
 import { useAnalysisStore } from '../store/analysisStore'
 
@@ -22,11 +23,17 @@ function StepBadge({ n, active }: { n: number; active: boolean }) {
 }
 
 function PhaseRow({ phaseKey, status, label }: { phaseKey: string; status?: string; label: string }) {
-  const icon = status === 'done' ? '✓' : status === 'running' ? '⟳' : status === 'error' ? '✗' : '○'
-  const color = status === 'done' ? 'text-discord-green' : status === 'running' ? 'text-discord-yellow' : status === 'error' ? 'text-discord-red' : 'text-gray-600'
+  const Icon =
+    status === 'done' ? Check :
+    status === 'running' ? Loader2 :
+    status === 'error' ? X : Circle
+  const color =
+    status === 'done' ? 'text-discord-green' :
+    status === 'running' ? 'text-discord-yellow' :
+    status === 'error' ? 'text-discord-red' : 'text-gray-600'
   return (
     <div className={`flex items-center gap-3 py-1.5 ${!status || status === 'pending' ? 'opacity-40' : ''}`}>
-      <span className={`font-mono text-sm w-4 text-center ${color} ${status === 'running' ? 'animate-spin' : ''}`}>{icon}</span>
+      <Icon size={14} className={`shrink-0 ${color} ${status === 'running' ? 'animate-spin' : ''}`} />
       <span className="text-sm">{label}</span>
     </div>
   )
@@ -146,7 +153,8 @@ export default function Analysis() {
       {/* Bot 接続状態 */}
       {health && !health.bot_ready && (
         <div className="flex items-center gap-3 p-4 bg-red-950/40 border border-red-800/40 rounded-xl text-sm">
-          <span className="text-red-400 font-medium">⚠ Discord Bot が未接続です</span>
+          <AlertTriangle size={14} className="text-red-400 shrink-0" />
+          <span className="text-red-400 font-medium">Discord Bot が未接続です</span>
           <button
             onClick={() => navigate('/settings')}
             className="ml-auto px-3 py-1.5 bg-red-900/60 hover:bg-red-800/60 border border-red-700/40 rounded-lg text-red-300 text-xs transition-colors"
@@ -214,10 +222,10 @@ export default function Analysis() {
         )}
 
         {collectStatus === 'done' && (
-          <p className="text-discord-green text-sm">✓ 収集完了 — {collectProgress.done} 件取得</p>
+          <p className="text-discord-green text-sm flex items-center gap-1.5"><Check size={13} /> 収集完了 — {collectProgress.done} 件取得</p>
         )}
         {collectStatus === 'error' && (
-          <p className="text-discord-red text-sm">✗ 収集エラー（ログを確認）</p>
+          <p className="text-discord-red text-sm flex items-center gap-1.5"><X size={13} /> 収集エラー（ログを確認）</p>
         )}
 
         <button

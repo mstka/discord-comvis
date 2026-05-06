@@ -6,13 +6,13 @@ services:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_DB:       discord_comvis
-      POSTGRES_USER:     comvis
+      POSTGRES_DB:       cbreview
+      POSTGRES_USER:     cbreview
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test:     ["CMD-SHELL", "pg_isready -U comvis -d discord_comvis"]
+      test:     ["CMD-SHELL", "pg_isready -U cbreview -d cbreview"]
       interval: 10s
       timeout:  5s
       retries:  5
@@ -27,7 +27,7 @@ services:
     env_file: ./backend/.env           # local overrides (not committed)
     environment:
       # Override DATABASE_URL to point at the postgres container
-      DATABASE_URL: postgresql+asyncpg://comvis:${POSTGRES_PASSWORD}@postgres:5432/discord_comvis
+      DATABASE_URL: postgresql+asyncpg://cbreview:${POSTGRES_PASSWORD}@postgres:5432/cbreview
       # CORS: same-origin via nginx, keep localhost for direct dev access
       CORS_ORIGINS:  "http://localhost,http://localhost:80,http://127.0.0.1"
       HOST:          "0.0.0.0"

@@ -206,7 +206,7 @@ function ReportDocument({ report, axes }: { report: EvaluationReport; axes: Rela
 
         {/* ── FOOTER ── */}
         <View style={s.footer}>
-          <Text style={s.footerText}>Discord ComVis — このレポートはチャット分析に基づく補助資料です</Text>
+          <Text style={s.footerText}>CBReview — このレポートはチャット分析に基づく補助資料です</Text>
           <Text style={s.footerText}>{today}</Text>
         </View>
       </Page>

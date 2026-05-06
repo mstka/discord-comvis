@@ -93,7 +93,7 @@ function Sidebar() {
             <Bot size={16} className="text-white" />
           </div>
           <div>
-            <p className="text-white font-bold text-sm leading-none">ComVis</p>
+            <p className="text-white font-bold text-sm leading-none">CBReview</p>
             <p className="text-gray-500 text-xs mt-0.5">Discord分析</p>
           </div>
         </div>
@@ -136,7 +136,7 @@ function Sidebar() {
 
       {/* Footer */}
       <div className="px-4 py-4 border-t border-gray-800/60">
-        <p className="text-gray-600 text-xs">Discord ComVis v1.0</p>
+        <p className="text-gray-600 text-xs">CBReview v1.0</p>
       </div>
     </nav>
   )
