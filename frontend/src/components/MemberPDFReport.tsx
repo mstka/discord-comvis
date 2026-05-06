@@ -15,18 +15,13 @@ import { Document, Page, Text, View, StyleSheet, Font, pdf } from '@react-pdf/re
 import type { EvaluationReport, RelationshipAxes } from '../api/client'
 
 // ── Japanese font registration ────────────────────────────────────────────────
-// Noto Sans JP — supports full Japanese character set
+// Fonts are downloaded into public/fonts/ during Docker build (Dockerfile).
+// The browser fetches them from nginx at /fonts/*, so no external CDN at runtime.
 Font.register({
   family: 'NotoSansJP',
   fonts: [
-    {
-      src: 'https://fonts.gstatic.com/s/notosansjp/v53/-F6jfjtqLzI2JPCgQBnw7HFyzSD-AsregP8VFBEj75s.ttf',
-      fontWeight: 'normal',
-    },
-    {
-      src: 'https://fonts.gstatic.com/s/notosansjp/v53/-F6jfjtqLzI2JPCgQBnw7HFyzSD-AsregP8VFJEt4L1.ttf',
-      fontWeight: 'bold',
-    },
+    { src: '/fonts/NotoSansJP-Regular.ttf', fontWeight: 'normal' },
+    { src: '/fonts/NotoSansJP-Bold.ttf',    fontWeight: 'bold'   },
   ],
 })
 
