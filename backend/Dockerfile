@@ -2,19 +2,27 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# OS dependencies for numpy/scipy/scikit-learn builds & mecab (optional)
+# Build tools + libpq for asyncpg
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc g++ libpq-dev curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python dependencies first (layer cache)
+# ── Core dependencies (must succeed) ─────────────────────────────────────────
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --prefer-binary -r requirements.txt
 
-# Download GiNZA model — fail gracefully; MeCab/simple fallback is used if unavailable
-RUN python -m spacy download ja_ginza 2>/dev/null || echo "[INFO] ja_ginza unavailable — morphological fallback active"
+# ── Optional: Kalman filter library ──────────────────────────────────────────
+RUN pip install --no-cache-dir --prefer-binary filterpy==1.4.5 \
+    || echo "[INFO] filterpy unavailable — Kalman filter will use numpy fallback"
 
-# Copy source
+# ── Optional: Japanese NLP (spaCy + GiNZA) ───────────────────────────────────
+RUN pip install --no-cache-dir --prefer-binary "spacy==3.7.4" "ja-ginza==5.1.3" \
+    || echo "[INFO] spaCy/GiNZA unavailable — morphological fallback active"
+
+RUN python -m spacy download ja_ginza 2>/dev/null \
+    || echo "[INFO] ja_ginza model download skipped"
+
+# ── Application source ────────────────────────────────────────────────────────
 COPY . .
 
 EXPOSE 8000
