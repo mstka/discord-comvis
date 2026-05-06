@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { analyzeApi, collectApi, createWS } from '../api/client'
+import { useNavigate } from 'react-router-dom'
+import { analyzeApi, collectApi, createWS, healthApi } from '../api/client'
 import { useAnalysisStore } from '../store/analysisStore'
 
 const PHASE_LABELS: Record<string, string> = {
@@ -32,9 +33,16 @@ function PhaseRow({ phaseKey, status, label }: { phaseKey: string; status?: stri
 }
 
 export default function Analysis() {
+  const navigate = useNavigate()
   const { runId, status, phases, guildId, setRunId, setGuildId, setStatus, updatePhase, reset } = useAnalysisStore()
   const wsCollectRef = useRef<WebSocket | null>(null)
   const wsAnalyzeRef = useRef<WebSocket | null>(null)
+
+  const { data: health } = useQuery({
+    queryKey: ['health'],
+    queryFn: () => healthApi.get().then(r => r.data),
+    refetchInterval: 10_000,
+  })
 
   const [selectedChannels, setSelectedChannels] = useState<string[]>([])
   const [collectStatus, setCollectStatus] = useState<'idle' | 'running' | 'done' | 'error'>('idle')
@@ -133,7 +141,26 @@ export default function Analysis() {
 
   return (
     <div className="p-6 max-w-3xl space-y-6">
-      <h1 className="text-2xl font-bold">分析実行</h1>
+      <h1 className="text-2xl font-bold text-white">分析実行</h1>
+
+      {/* Bot 接続状態 */}
+      {health && !health.bot_ready && (
+        <div className="flex items-center gap-3 p-4 bg-red-950/40 border border-red-800/40 rounded-xl text-sm">
+          <span className="text-red-400 font-medium">⚠ Discord Bot が未接続です</span>
+          <button
+            onClick={() => navigate('/settings')}
+            className="ml-auto px-3 py-1.5 bg-red-900/60 hover:bg-red-800/60 border border-red-700/40 rounded-lg text-red-300 text-xs transition-colors"
+          >
+            設定を開く →
+          </button>
+        </div>
+      )}
+      {health?.bot_ready && (
+        <div className="flex items-center gap-2 p-3 bg-green-950/30 border border-green-800/30 rounded-xl text-sm text-green-400">
+          <span className="w-2 h-2 bg-discord-green rounded-full animate-pulse" />
+          <span>{health.bot_user} として接続中</span>
+        </div>
+      )}
 
       {/* ── Step 1: サーバー・チャンネル選択 ── */}
       <div className="bg-gray-900 border border-gray-800 rounded-lg p-5 space-y-4">

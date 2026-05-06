@@ -1,0 +1,11 @@
+[phases.setup]
+nixPkgs = ["python311", "mecab"]
+
+[phases.install]
+cmds = [
+  "pip install -r backend/requirements.txt",
+  "python -m spacy download ja_ginza || echo 'GiNZA install failed, morphological fallback will be used'"
+]
+
+[start]
+cmd = "cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT"

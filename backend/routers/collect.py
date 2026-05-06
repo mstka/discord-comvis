@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from database import get_db
 from collector import discord_client as dc
 from collector import fetcher
+from routers.auth import require_admin, require_viewer, Role
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -52,7 +53,7 @@ async def list_channels(guild_id: int):
 
 
 @router.post("/fetch")
-async def start_fetch(req: FetchRequest, db: AsyncSession = Depends(get_db)):
+async def start_fetch(req: FetchRequest, db: AsyncSession = Depends(get_db), _: Role = Depends(require_admin)):
     global _active_fetches
     if not dc.is_ready():
         raise HTTPException(503, "Discord bot not connected yet")

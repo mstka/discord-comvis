@@ -13,10 +13,24 @@ class Settings(BaseSettings):
 
     discord_bot_token: str = ""
     gemini_api_key: str = ""
+
+    # Database — set DATABASE_URL to postgresql+asyncpg://... on Railway
+    # Fallback to local SQLite for development
     database_url: str = "sqlite+aiosqlite:///./data/discord_comvis.db"
+
     host: str = "0.0.0.0"
     port: int = 8000
     log_level: str = "info"
+
+    # CORS — add Vercel frontend URL here
+    cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
+
+    # Auth
+    jwt_secret: str = "change-me-in-production-railway"
+    jwt_algorithm: str = "HS256"
+    jwt_expire_hours: int = 24
+    admin_password: str = "Test2525"     # write operations
+    viewer_password: str = "LookSys555"  # read-only
 
     # Slow Route coefficients
     slow_alpha: float = 0.35
@@ -30,6 +44,14 @@ class Settings(BaseSettings):
     # Thresholds
     edge_confidence_threshold: float = 0.30
     open_socket_timeout_hours: int = 48
+
+    @property
+    def cors_origins_list(self) -> list[str]:
+        return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
+
+    @property
+    def is_postgres(self) -> bool:
+        return self.database_url.startswith("postgresql")
 
 
 @lru_cache

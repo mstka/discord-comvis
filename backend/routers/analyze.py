@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from database import get_db
 from models.schema import AnalysisRun
 from pipeline.orchestrator import start_pipeline, get_progress_queue
+from routers.auth import require_admin, Role
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -21,7 +22,7 @@ class RunRequest(BaseModel):
 
 
 @router.post("/run")
-async def run_analysis(req: RunRequest):
+async def run_analysis(req: RunRequest, _: Role = Depends(require_admin)):
     run_id = await start_pipeline(req.guild_id)
     return {"run_id": run_id, "status": "started"}
 

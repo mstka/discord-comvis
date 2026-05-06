@@ -5,8 +5,8 @@ import discord
 logger = logging.getLogger(__name__)
 
 intents = discord.Intents.default()
-intents.message_content = True
-intents.members = True
+intents.message_content = True   # Privileged: must enable in Developer Portal
+intents.members = False          # Privileged: disable unless you need member list sync
 intents.guilds = True
 
 discord_client = discord.Client(intents=intents)
