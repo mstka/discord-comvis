@@ -11,17 +11,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certifi
 COPY package*.json ./
 RUN npm install --legacy-peer-deps
 
-# Download Noto Sans JP TTF into public/fonts/ so Vite includes it in the build.
-# @react-pdf/renderer fetches fonts from the browser, so they must be served by nginx.
+# Download Noto Sans JP OTF (static, non-variable) into public/fonts/.
+# notofonts/japanese ships static OTF in fonts/otf/ — variable TTF in fonts/variable/
+# is NOT supported by @react-pdf/renderer's fontkit.
 RUN mkdir -p public/fonts && \
-    curl -fL --retry 3 \
-      "https://cdn.jsdelivr.net/gh/notofonts/japanese@main/fonts/ttf/NotoSansJP-Regular.ttf" \
-      -o public/fonts/NotoSansJP-Regular.ttf && \
-    curl -fL --retry 3 \
-      "https://cdn.jsdelivr.net/gh/notofonts/japanese@main/fonts/ttf/NotoSansJP-Bold.ttf" \
-      -o public/fonts/NotoSansJP-Bold.ttf && \
-    echo "[fonts] Noto Sans JP downloaded OK" || \
-    echo "[fonts] WARNING: font download failed — PDF will not render Japanese"
+    curl -fsSL --retry 3 \
+      "https://cdn.jsdelivr.net/gh/notofonts/japanese@main/fonts/otf/NotoSansJP-Regular.otf" \
+      -o public/fonts/NotoSansJP-Regular.otf && \
+    curl -fsSL --retry 3 \
+      "https://cdn.jsdelivr.net/gh/notofonts/japanese@main/fonts/otf/NotoSansJP-Bold.otf" \
+      -o public/fonts/NotoSansJP-Bold.otf && \
+    ls -lh public/fonts/ && \
+    echo "[fonts] Noto Sans JP OTF downloaded OK"
 
 # Copy source and build
 COPY . .
