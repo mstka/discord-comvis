@@ -243,11 +243,9 @@ export const healthApi = {
 // ── WebSocket factory ─────────────────────────────────────────────────────────
 
 export function createWS(path: string, onMessage: (data: unknown) => void): WebSocket {
+  // nginx proxy handles /ws/* → backend, so always use current host
   const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-  const host = import.meta.env.VITE_API_URL
-    ? import.meta.env.VITE_API_URL.replace(/^https?:\/\//, '')
-    : window.location.host
-  const url = `${proto}//${host}${path}`
+  const url = `${proto}//${window.location.host}${path}`
   const ws = new WebSocket(url)
   ws.onmessage = (e) => {
     try { onMessage(JSON.parse(e.data)) } catch { /* ignore */ }
