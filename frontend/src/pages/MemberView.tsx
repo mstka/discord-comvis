@@ -1,16 +1,14 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { User, ExternalLink, MessageCircle, Brain, GitMerge, Award, Sprout } from 'lucide-react'
+import { User, ExternalLink, MessageCircle, GitMerge, Award } from 'lucide-react'
 import { membersApi, evaluationApi, type MemberSummary } from '../api/client'
 import { Tooltip } from '../components/Tooltip'
 
 const TYPE_ICONS: Record<string, React.ElementType> = {
   '相談対応': MessageCircle,
-  '高認知負荷な応答': Brain,
   '橋渡し': GitMerge,
-  '論点整理': Award,
-  '育成支援': Sprout,
+  'リアクション獲得': Award,
 }
 
 function ScoreBar({ label, value }: { label: string; value: number }) {

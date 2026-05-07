@@ -261,8 +261,6 @@ async def evaluation_report(member_id: str, db: AsyncSession = Depends(get_db)):
     types = [
         {"type": "相談対応", "count": resolved},
         {"type": "橋渡し", "score": round(centrality, 3)},
-        {"type": "育成支援", "sentiment": round(score.avg_sentiment if score else 0, 3)},
-        {"type": "高認知負荷な応答", "expertise": round(score.expertise_score if score else 0, 3)},
         {"type": "リアクション獲得", "density": round(score.reaction_density if score else 0, 3)},
     ]
 

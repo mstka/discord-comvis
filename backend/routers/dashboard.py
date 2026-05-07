@@ -193,28 +193,10 @@ async def contribution_types(member_id: str, db: AsyncSession = Depends(get_db))
             "description": f"{score.resolved_count}件の相談・質問に対応",
         },
         {
-            "type": "高認知負荷な応答",
-            "score": min(1.0, score.expertise_score),
-            "count": None,
-            "description": "複雑・専門的な質問への対応",
-        },
-        {
             "type": "橋渡し",
             "score": min(1.0, score.centrality * 5),
             "count": None,
             "description": "チーム内の情報ハブ・接続役",
-        },
-        {
-            "type": "論点整理",
-            "score": min(1.0, score.centrality * 3),
-            "count": int(edges_resolved),
-            "description": "会話の中心として論点をまとめる",
-        },
-        {
-            "type": "育成支援",
-            "score": min(1.0, max(0.0, score.avg_sentiment)),
-            "count": score.resolved_count,
-            "description": "ポジティブな対応でメンバーを育成",
         },
     ]
 
