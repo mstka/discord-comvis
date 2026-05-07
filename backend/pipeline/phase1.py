@@ -14,18 +14,34 @@ from sqlalchemy import select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.schema import Message, Mention, OpenSocket
+from algorithms import morphological
 
 logger = logging.getLogger(__name__)
 
+# Fast regex gate: cheap first-pass check.
+# If this hits, we skip the heavier morphological analysis.
 QUESTION_PATTERNS = re.compile(
     r"(？|\?|か[？?]?$|教えてください|教えて下さい|わかりますか|ありますか|どうすれば|どうしたら|なぜ|どうして|方法は|やり方)"
 )
 
 
 def _looks_like_question(text: str) -> bool:
+    """Two-stage question detection.
+
+    Stage 1 (fast): regex — same patterns as before, O(n) string scan.
+    Stage 2 (morph): morphological.is_question_doc — broader coverage using
+    GiNZA token analysis. Only runs when Stage 1 misses, so cost is low
+    for the common case.
+    """
     if not text:
         return False
-    return bool(QUESTION_PATTERNS.search(text))
+    if QUESTION_PATTERNS.search(text):
+        return True
+    # Morphological fallback: catches interrogative pronouns,
+    # colloquial patterns, and sentence-final か particles that
+    # the regex doesn't cover (e.g. "どこですか" "知ってる？" "確認お願い").
+    doc = morphological.process(text)
+    return morphological.is_question_doc(doc)
 
 
 async def run(db: AsyncSession, guild_id: str, run_id: int) -> int:

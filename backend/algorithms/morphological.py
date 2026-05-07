@@ -61,6 +61,58 @@ def extract_named_entities(doc) -> list[tuple[str, str]]:
     return [(ent.text, ent.label_) for ent in doc.ents]
 
 
+# Extended question markers for morphological detection.
+# Broader than Phase 1 regex: covers interrogative pronouns and
+# colloquial patterns that regex misses.
+_QUESTION_MARKERS_MORPH = {
+    # Sentence-final particles / punctuation
+    "か", "？", "?", "ですか", "ますか", "でしょうか", "ないか",
+    "ないですか", "ないでしょうか",
+    # Interrogative pronouns (疑問詞)
+    "どこ", "どこか", "だれ", "誰", "なに", "何", "いつ",
+    "どう", "どの", "どれ", "どちら", "どなた", "いくつ", "いくら",
+    "なぜ", "なんで", "どうして", "どうやって", "どうすれば", "どうしたら",
+    # Colloquial / request patterns
+    "知ってる", "知ってますか", "知りませんか", "わかりますか", "わかる？",
+    "できますか", "できる？", "ありますか", "ありませんか",
+    "教えてほしい", "教えてください", "教えて下さい",
+    "確認お願い", "確認できますか",
+}
+
+
+def is_question_doc(doc) -> bool:
+    """Return True if the processed doc looks like a question.
+
+    Two-stage check:
+    1. Surface-level: any marker from _QUESTION_MARKERS_MORPH appears in the text.
+    2. GiNZA token-level: sentence-final '?' particle or interrogative POS tag.
+
+    Falls back gracefully when GiNZA is unavailable (doc is None).
+    """
+    if doc is None:
+        return False
+
+    text = doc.text
+
+    # Stage 1: surface markers
+    if any(m in text for m in _QUESTION_MARKERS_MORPH):
+        return True
+
+    # Stage 2: GiNZA morphological features
+    try:
+        for token in doc:
+            # Sentence-final か particle (文末助詞)
+            if token.text == "か" and "助詞" in token.tag_:
+                return True
+            # Interrogative pronoun tag (疑問詞) if the tagger labels it
+            if "疑問" in (token.tag_ or ""):
+                return True
+    except Exception:
+        pass
+
+    return False
+
+
 def compute_modality_symmetry(doc_a, doc_b) -> float:
     """Score reflecting question/answer symmetry between two documents."""
     QUESTION_MARKERS = {"か", "？", "?", "ですか", "ますか", "でしょうか"}
