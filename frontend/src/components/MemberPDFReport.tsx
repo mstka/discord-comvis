@@ -217,7 +217,7 @@ function ReportDocument({ report, axes }: { report: EvaluationReport; axes: Rela
             <View key={i} style={s.checkItem}>
               <View style={s.bullet} />
               <View style={{ flex: 1 }}>
-                <Text style={[s.checkText, { fontFamily: 'Helvetica-Bold', color: C.dark, marginBottom: 1 }]}>{cp.point}</Text>
+                <Text style={[s.checkText, { fontFamily: FONT, fontWeight: 'bold', color: C.dark, marginBottom: 1 }]}>{cp.point}</Text>
                 <Text style={s.checkText}>{cp.note}</Text>
               </View>
             </View>
