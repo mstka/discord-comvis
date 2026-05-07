@@ -3,7 +3,7 @@ import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-quer
 import {
   LayoutDashboard, Network, PlayCircle, Users, ClipboardList,
   Settings, Bot, ChevronRight, Wifi, WifiOff, Loader2,
-  LogOut, ShieldCheck, Eye,
+  LogOut, ShieldCheck, Eye, Workflow,
 } from 'lucide-react'
 import Dashboard from './pages/Dashboard'
 import Graph from './pages/Graph'
@@ -11,6 +11,7 @@ import Analysis from './pages/Analysis'
 import SettingsPage from './pages/Settings'
 import MemberView from './pages/MemberView'
 import ManagerView from './pages/ManagerView'
+import Pipeline from './pages/Pipeline'
 import Login from './pages/Login'
 import NotificationToast from './components/NotificationToast'
 import { healthApi } from './api/client'
@@ -22,6 +23,7 @@ const NAV = [
   { to: '/', label: 'ダッシュボード', icon: LayoutDashboard, end: true },
   { to: '/graph', label: '関係性グラフ', icon: Network, end: false },
   { to: '/analyze', label: '分析実行', icon: PlayCircle, end: false },
+  { to: '/pipeline', label: 'パイプライン', icon: Workflow, end: false },
   { to: '/member', label: 'メンバー確認', icon: Users, end: false },
   { to: '/manager', label: 'マネージャー', icon: ClipboardList, end: false },
   { to: '/settings', label: '設定', icon: Settings, end: false },
@@ -158,6 +160,7 @@ function AppLayout() {
           <Route path="/" element={<Dashboard />} />
           <Route path="/graph" element={<Graph />} />
           <Route path="/analyze" element={<Analysis />} />
+          <Route path="/pipeline" element={<Pipeline />} />
           <Route path="/member" element={<MemberView />} />
           <Route path="/member/:memberId" element={<MemberView />} />
           <Route path="/manager" element={<ManagerView />} />
