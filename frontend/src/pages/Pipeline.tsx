@@ -246,32 +246,55 @@ export default function Pipeline() {
           delay="300ms"
           stats={slow > 0 ? <StatPill label="通過" value={slow} color="#8B5CF6" /> : undefined}
         >
-          {/* CCA explanation */}
+          {/* Cosine similarity */}
           <div className="rounded-lg border border-purple-500/20 bg-purple-500/5 px-3 py-2.5 space-y-2">
             <p className="text-xs font-semibold text-purple-400 flex items-center gap-1.5">
-              <Layers size={11} /> CCA（正準相関分析）
+              <Layers size={11} /> コサイン類似度（意味的近さ）
             </p>
-            <p className="text-xs text-gray-500 leading-relaxed">
-              直前 5 件のコンテキスト群と返信メッセージを CCA で射影し、<br />
-              最大相関方向でのコサイン類似度をスコア化
-            </p>
+            <div className="font-mono text-xs text-gray-400 bg-gray-950/60 rounded px-2 py-1.5">
+              cos(q, a) = (q · a) / (|q| × |a|)
+            </div>
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div className="rounded bg-green-950/40 border border-green-800/30 px-2 py-1.5">
+                <p className="text-green-400 font-medium mb-0.5">高スコア例</p>
+                <p className="text-gray-500">「Pythonのエラーは？」<br />↔ 「pip install で解決します」</p>
+              </div>
+              <div className="rounded bg-red-950/40 border border-red-800/30 px-2 py-1.5">
+                <p className="text-red-400 font-medium mb-0.5">苦手な例</p>
+                <p className="text-gray-500">「HTTPエラーが出る」<br />↔ 「nginx.confを確認して」</p>
+              </div>
+            </div>
+            <p className="text-xs text-gray-600">※ 「似ている」は測れるが「補完している」は測れない — Q&A の本質的な課題</p>
           </div>
 
-          {/* Kalman explanation */}
-          <div className="rounded-lg border border-purple-500/20 bg-purple-500/5 px-3 py-2.5 space-y-1">
+          {/* Kalman filter */}
+          <div className="rounded-lg border border-purple-500/20 bg-purple-500/5 px-3 py-2.5 space-y-2">
             <p className="text-xs font-semibold text-purple-400 flex items-center gap-1.5">
               <TrendingUp size={11} /> カルマンフィルタ（トピックシフト検出）
             </p>
-            <p className="text-xs text-gray-500">
-              チャンネルごとに話題ベクトルをトラッキング。マハラノビス距離 &gt; 5.0 で「話題変化」と判定し時間減衰を半減
-            </p>
+            <p className="text-xs text-gray-500">チャンネルの「現在の話題」を 768 次元の状態ベクトルとして追跡し、新メッセージとのズレでシフトを検出する</p>
+            <div className="space-y-1">
+              {[
+                { step: '① 予測', formula: 'μ̂ₜ = μₜ₋₁', note: '話題は慣性で続くと仮定', color: '#8B5CF6' },
+                { step: '② 乖離', formula: 'd  = xₜ − μ̂ₜ', note: '新メッセージと予測の差（イノベーション）', color: '#8B5CF6' },
+                { step: '③ 判定', formula: '‖d‖ₘ > 5.0', note: '→ トピックシフト / 時間減衰を半減', color: '#EF4444' },
+                { step: '④ 更新', formula: 'μₜ  = μ̂ₜ + K·d', note: 'カルマンゲインで状態を更新', color: '#10B981' },
+              ].map(({ step, formula, note, color }) => (
+                <div key={step} className="flex items-center gap-2 text-xs">
+                  <span className="w-16 text-right shrink-0" style={{ color }}>{step}</span>
+                  <span className="font-mono bg-gray-950/70 rounded px-2 py-0.5 text-gray-300 min-w-[160px]">{formula}</span>
+                  <span className="text-gray-600">{note}</span>
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-gray-600">✓ ラベルなしで「会話の流れ」を追跡できる — コサイン類似度とは独立した軸</p>
           </div>
 
           <Formula>
-            {'S = 0.35 × S_CCA\n'}
-            {'  + 0.25 × S_diff  (差分ベクトル方向)\n'}
-            {'  + 0.25 × S_bilinear  (双線形スコア)\n'}
-            {'  + 0.15 × e^(−λt)  × カルマン補正'}
+            {'S = 0.35 × cos(q, a)         ← コサイン類似度\n'}
+            {'  + 0.25 × S_diff             ← 差分ベクトルの向き\n'}
+            {'  + 0.25 × S_bilinear         ← 双線形スコア\n'}
+            {'  + 0.15 × e^(−λt) × K補正   ← 時間 × カルマン補正'}
           </Formula>
           <div className="space-y-1.5">
             <ThresholdRow threshold="≥ 0.80" label="確定 → Phase 3"    color="#10B981" icon={CheckCircle2} />
@@ -392,7 +415,7 @@ export default function Pipeline() {
         </PhaseCard>
 
         <div className="mt-8 mb-2 text-center text-xs text-gray-700">
-          CBReview  —  Powered by Gemini Embedding · NetworkX · GiNZA · Kalman Filter
+          CBReview  —  Powered by Gemini Embedding · NetworkX · GiNZA · Kalman Filter · Cosine Similarity
         </div>
       </div>
     </div>
