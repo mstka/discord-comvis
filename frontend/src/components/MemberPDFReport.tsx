@@ -90,9 +90,9 @@ const s = StyleSheet.create({
 
   // text blocks
   comment: { fontSize: 9, color: C.mid, lineHeight: 1.6, backgroundColor: '#EFF6FF', borderLeftWidth: 3, borderLeftColor: C.primary, padding: '8 10', borderRadius: 4 },
-  checkItem: { flexDirection: 'row', gap: 6, marginBottom: 5 },
-  bullet: { width: 14, height: 14, borderWidth: 1.5, borderColor: C.muted, borderRadius: 2, marginTop: 0.5 },
-  checkText: { flex: 1, fontSize: 8.5, color: C.mid, lineHeight: 1.5 },
+  checkItem: { flexDirection: 'row', gap: 6, marginBottom: 10 },
+  bullet: { width: 14, height: 14, borderWidth: 1.5, borderColor: C.muted, borderRadius: 2, marginTop: 2 },
+  checkText: { flex: 1, fontSize: 8.5, color: C.mid, lineHeight: 1.6 },
   qItem: { flexDirection: 'row', gap: 6, marginBottom: 4 },
   qBullet: { fontSize: 8.5, color: C.primary, fontFamily: FONT, fontWeight: 'bold' },
   qText: { flex: 1, fontSize: 8.5, color: C.mid, lineHeight: 1.5 },
@@ -217,7 +217,7 @@ function ReportDocument({ report, axes }: { report: EvaluationReport; axes: Rela
             <View key={i} style={s.checkItem}>
               <View style={s.bullet} />
               <View style={{ flex: 1 }}>
-                <Text style={[s.checkText, { fontFamily: FONT, fontWeight: 'bold', color: C.dark, marginBottom: 1 }]}>{cp.point}</Text>
+                <Text style={[s.checkText, { fontFamily: FONT, fontWeight: 'bold', color: C.dark, marginBottom: 3 }]}>{cp.point}</Text>
                 <Text style={s.checkText}>{cp.note}</Text>
               </View>
             </View>
