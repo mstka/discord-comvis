@@ -187,6 +187,18 @@ export interface CoefficientEntry {
   bonus_ratio: number
 }
 
+export interface ScoreAverages {
+  count: number
+  scores: Record<string, number>     // 3-axis
+  coefficient: number
+  contribution_score: number
+  resolved_count: number
+}
+
+export interface FullAverages extends ScoreAverages {
+  relationship_axes: RelationshipAxes
+}
+
 // ── Auth ────────────────────────────────────────────────────────────────────
 
 export const authApi = {
@@ -231,6 +243,7 @@ export const settingsApi = {
 
 export const evaluationApi = {
   coefficients: () => api.get<CoefficientEntry[]>('/evaluation/coefficients'),
+  averages: () => api.get<ScoreAverages>('/evaluation/averages'),
   report: (memberId: string) => api.get<EvaluationReport>(`/evaluation/report/${memberId}`),
   relationshipAxes: (memberId: string) => api.get<RelationshipAxesResult>(`/evaluation/relationship-axes/${memberId}`),
   relationshipAxesAll: () => api.get<RelationshipAxesResult[]>('/evaluation/relationship-axes-all'),

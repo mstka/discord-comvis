@@ -3,14 +3,16 @@ import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer,
-  BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip,
+  BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ReferenceLine,
 } from 'recharts'
 import {
-  ClipboardList, AlertTriangle, Eye, Award, CheckSquare,
+  ClipboardList, AlertTriangle, Eye, Award,
   ChevronDown, ChevronUp, User, FileText, Download, Loader2,
+  TrendingUp, TrendingDown, Minus,
 } from 'lucide-react'
-import { membersApi, evaluationApi, type EvaluationReport, type RelationshipAxes } from '../api/client'
+import { membersApi, evaluationApi, type EvaluationReport, type RelationshipAxes, type FullAverages } from '../api/client'
 import { Tooltip } from '../components/Tooltip'
+import { useAverages } from '../hooks/useAverages'
 
 function Tab({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
   return (
@@ -24,25 +26,6 @@ function Tab({ label, active, onClick }: { label: string; active: boolean; onCli
     >
       {label}
     </button>
-  )
-}
-
-function CheckItem({ point, note, done, onToggle }: { point: string; note: string; done: boolean; onToggle: () => void }) {
-  return (
-    <div className="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-800/30 transition-colors">
-      <button
-        onClick={onToggle}
-        className={`mt-0.5 w-5 h-5 rounded border shrink-0 flex items-center justify-center transition-colors ${
-          done ? 'bg-discord-green border-discord-green' : 'border-gray-600 hover:border-gray-400'
-        }`}
-      >
-        {done && <CheckSquare size={12} className="text-gray-950" />}
-      </button>
-      <div className="flex-1 min-w-0">
-        <p className={`text-sm font-medium ${done ? 'line-through text-gray-500' : 'text-white'}`}>{point}</p>
-        <p className="text-xs text-gray-500 mt-0.5">{note}</p>
-      </div>
-    </div>
   )
 }
 
@@ -65,30 +48,60 @@ const AXIS_DESCRIPTIONS: Record<string, string> = {
   '応答性': '質問への返答速度（中央値ベース）',
 }
 
-function AxisBar({ label, value }: { label: string; value: number }) {
+function AxisBar({ label, value, avg }: { label: string; value: number; avg?: number }) {
   const pct = Math.round(value * 100)
+  const avgPct = avg !== undefined ? Math.round(avg * 100) : null
+  const delta = avgPct !== null ? pct - avgPct : null
   const color = AXIS_COLORS[label] ?? '#5865F2'
   return (
-    <div className="space-y-1.5">
-      <div className="flex justify-between text-xs">
+    <div className="space-y-1">
+      <div className="flex justify-between items-center text-xs">
         <Tooltip term={label}><span className="text-gray-300">{label}</span></Tooltip>
-        <span className="font-medium text-white">{pct}</span>
+        <div className="flex items-center gap-2">
+          {delta !== null && (
+            <span className={`flex items-center gap-0.5 font-medium ${delta > 0 ? 'text-green-400' : delta < 0 ? 'text-red-400' : 'text-gray-500'}`}>
+              {delta > 0 ? <TrendingUp size={9} /> : delta < 0 ? <TrendingDown size={9} /> : <Minus size={9} />}
+              {delta > 0 ? '+' : ''}{delta}
+            </span>
+          )}
+          <span className="font-medium text-white tabular-nums">{pct}</span>
+        </div>
       </div>
-      <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
-        <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: color }} />
+      <div className="relative h-2 bg-gray-800 rounded-full">
+        <div className="absolute inset-y-0 left-0 rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: color }} />
+        {avgPct !== null && (
+          <div
+            className="absolute top-1/2 -translate-y-1/2 w-0.5 h-3.5 bg-white/50 rounded-full z-10"
+            style={{ left: `${avgPct}%` }}
+          />
+        )}
       </div>
+      {avgPct !== null && (
+        <div className="flex justify-end">
+          <span className="text-xs text-gray-600">平均 {avgPct}</span>
+        </div>
+      )}
     </div>
   )
 }
 
 // ── Report card ───────────────────────────────────────────────────────────────
 
-function ReportCard({ report }: { report: EvaluationReport }) {
-  const [expanded, setExpanded] = useState(false)
-  const [checked, setChecked] = useState<Record<string, boolean>>({})
-  const [pdfLoading, setPdfLoading] = useState(false)
+function DeltaBadge({ value, avg }: { value: number; avg?: number }) {
+  if (avg === undefined) return null
+  const delta = Math.round((value - avg) * 100)
+  if (delta === 0) return <span className="text-xs text-gray-500 flex items-center gap-0.5"><Minus size={9} />平均並み</span>
+  return (
+    <span className={`text-xs font-medium flex items-center gap-0.5 ${delta > 0 ? 'text-green-400' : 'text-red-400'}`}>
+      {delta > 0 ? <TrendingUp size={9} /> : <TrendingDown size={9} />}
+      平均{delta > 0 ? '+' : ''}{delta}%
+    </span>
+  )
+}
 
-  const toggle = (point: string) => setChecked(prev => ({ ...prev, [point]: !prev[point] }))
+function ReportCard({ report, averages }: { report: EvaluationReport; averages?: FullAverages }) {
+  const [expanded, setExpanded] = useState(false)
+  const [pdfLoading, setPdfLoading] = useState(false)
 
   const radarData = Object.entries(report.scores).map(([key, val]) => ({
     axis: key.replace('貢献', ''),
@@ -103,7 +116,7 @@ function ReportCard({ report }: { report: EvaluationReport }) {
       const { downloadMemberPDF } = await import('../components/MemberPDFReport')
       await downloadMemberPDF(report, axes6 ?? {
         育成指数: 0, 橋渡し指数: 0, 関係の多様性: 0, 双方向率: 0, 持続性: 0, 応答性: 0,
-      })
+      }, averages)
     } finally {
       setPdfLoading(false)
     }
@@ -120,18 +133,22 @@ function ReportCard({ report }: { report: EvaluationReport }) {
           <h3 className="font-semibold text-white">{report.display_name}</h3>
           <p className="text-xs text-gray-500">
             {report.period} · 解決 {report.summary.total_resolved}件 · 直近30日 {report.summary.recent_resolved}件
+            {averages && (
+              <span className="ml-1 text-gray-600">(平均 {averages.resolved_count.toFixed(1)}件)</span>
+            )}
           </p>
         </div>
         <div className="flex items-center gap-3">
           <div className="text-center">
             <p className="text-xs text-gray-500">係数</p>
             <p className="font-bold text-discord-yellow">{report.coefficient.toFixed(2)}x</p>
+            <DeltaBadge value={report.coefficient} avg={averages?.coefficient} />
           </div>
           <div className="text-center">
             <p className="text-xs text-gray-500">貢献</p>
             <p className="font-bold text-discord-blurple">{(report.summary.contribution_score * 100).toFixed(0)}%</p>
+            <DeltaBadge value={report.summary.contribution_score} avg={averages?.contribution_score} />
           </div>
-          {/* PDF download */}
           <button
             onClick={handlePDF}
             disabled={pdfLoading}
@@ -171,7 +188,7 @@ function ReportCard({ report }: { report: EvaluationReport }) {
                 <p className="text-xs text-gray-500 mb-3 font-medium">6軸 関係性指数</p>
                 <div className="space-y-3">
                   {Object.entries(axes6).map(([k, v]) => (
-                    <AxisBar key={k} label={k} value={v} />
+                    <AxisBar key={k} label={k} value={v} avg={averages?.relationship_axes?.[k as keyof RelationshipAxes]} />
                   ))}
                 </div>
               </div>
@@ -189,34 +206,16 @@ function ReportCard({ report }: { report: EvaluationReport }) {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {/* Manager checkpoints */}
-            <div>
-              <p className="text-xs text-gray-500 mb-1 font-medium">評価確認チェックリスト</p>
-              <div className="space-y-1">
-                {report.manager_checkpoints.map(cp => (
-                  <CheckItem
-                    key={cp.point}
-                    point={cp.point}
-                    note={cp.note}
-                    done={!!checked[cp.point]}
-                    onToggle={() => toggle(cp.point)}
-                  />
-                ))}
-              </div>
-            </div>
-
-            {/* 1on1 questions */}
-            <div>
-              <p className="text-xs text-gray-500 mb-2 font-medium">1on1で確認すべき質問</p>
-              <div className="space-y-1.5">
-                {report.one_on_one_questions.map((q, i) => (
-                  <div key={i} className="flex items-start gap-2 text-sm text-gray-400">
-                    <span className="shrink-0 mt-0.5 text-discord-blurple font-mono text-xs">Q{i + 1}.</span>
-                    <span>{q}</span>
-                  </div>
-                ))}
-              </div>
+          {/* 1on1 questions */}
+          <div>
+            <p className="text-xs text-gray-500 mb-2 font-medium">1on1で確認すべき質問</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+              {report.one_on_one_questions.map((q, i) => (
+                <div key={i} className="flex items-start gap-2 text-sm text-gray-400 bg-gray-800/40 rounded-lg px-3 py-2">
+                  <span className="shrink-0 mt-0.5 text-discord-blurple font-mono text-xs">Q{i + 1}.</span>
+                  <span>{q}</span>
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -238,12 +237,24 @@ function CoefficientsTab() {
     queryKey: ['coefficients'],
     queryFn: () => evaluationApi.coefficients().then(r => r.data),
   })
+  const averages = useAverages()
 
   return (
     <div className="space-y-6">
       <div className="bg-gray-900 border border-gray-800/80 rounded-xl p-5">
-        <h3 className="font-semibold text-white mb-1">Phase 5: 給与・賞与反映係数</h3>
-        <p className="text-xs text-gray-500 mb-4">3軸スコアから算出した賞与参考係数（0.8x〜1.2x）</p>
+        <div className="flex items-start justify-between mb-4">
+          <div>
+            <h3 className="font-semibold text-white mb-1">コミュニケーション係数（全員比較）</h3>
+            <p className="text-xs text-gray-500">3軸スコアから算出した賞与参考係数（0.8x〜1.2x）</p>
+          </div>
+          {averages && averages.count > 0 && (
+            <div className="text-right text-xs text-gray-500 bg-gray-800/60 rounded-lg px-3 py-2">
+              <p>チーム平均</p>
+              <p className="text-discord-yellow font-bold text-base">{averages.coefficient.toFixed(2)}x</p>
+              <p className="mt-0.5">{averages.count}名</p>
+            </div>
+          )}
+        </div>
 
         {!data || data.length === 0 ? (
           <p className="text-gray-600 text-sm py-8 text-center">分析を実行してください</p>
@@ -258,6 +269,14 @@ function CoefficientsTab() {
                   formatter={(v: number) => [`${v.toFixed(3)}x`, '係数']}
                 />
                 <Bar dataKey="coefficient" fill="#5865F2" radius={[0, 4, 4, 0]} />
+                {averages && (
+                  <ReferenceLine
+                    x={averages.coefficient}
+                    stroke="#FEE75C"
+                    strokeDasharray="4 3"
+                    label={{ value: `平均 ${averages.coefficient.toFixed(2)}x`, fill: '#FEE75C', fontSize: 10, position: 'top' }}
+                  />
+                )}
               </BarChart>
             </ResponsiveContainer>
 
@@ -277,17 +296,52 @@ function CoefficientsTab() {
                   </tr>
                 </thead>
                 <tbody>
-                  {data.map(row => (
-                    <tr key={row.member_id} className="border-b border-gray-800/40">
-                      <td className="py-2.5 text-white font-medium">{row.display_name}</td>
+                  {data.map(row => {
+                    const aboveAvg = averages ? row.coefficient >= averages.coefficient : null
+                    return (
+                      <tr key={row.member_id} className="border-b border-gray-800/40">
+                        <td className="py-2.5 text-white font-medium">{row.display_name}</td>
+                        {Object.keys(AXIS_LABELS).map(k => {
+                          const scoreVal = row.scores[k] * 100
+                          const avgVal = averages ? (averages.scores[k] ?? 0) * 100 : null
+                          const d = avgVal !== null ? Math.round(scoreVal - avgVal) : null
+                          return (
+                            <td key={k} className="py-2.5 text-center text-xs">
+                              <span className="text-gray-400">{scoreVal.toFixed(0)}%</span>
+                              {d !== null && d !== 0 && (
+                                <span className={`ml-1 text-xs ${d > 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                  {d > 0 ? '+' : ''}{d}
+                                </span>
+                              )}
+                            </td>
+                          )
+                        })}
+                        <td className="py-2.5 text-right">
+                          <span className={`font-bold ${aboveAvg === true ? 'text-discord-yellow' : aboveAvg === false ? 'text-gray-400' : 'text-discord-yellow'}`}>
+                            {row.coefficient.toFixed(2)}x
+                          </span>
+                          {aboveAvg !== null && (
+                            <span className={`ml-1.5 text-xs ${aboveAvg ? 'text-green-400' : 'text-red-400'}`}>
+                              {aboveAvg ? '↑' : '↓'}
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                  {averages && averages.count > 0 && (
+                    <tr className="border-t-2 border-gray-700 bg-gray-800/30">
+                      <td className="py-2.5 text-gray-500 text-xs font-medium">チーム平均</td>
                       {Object.keys(AXIS_LABELS).map(k => (
-                        <td key={k} className="py-2.5 text-center text-gray-400 text-xs">
-                          {(row.scores[k] * 100).toFixed(0)}%
+                        <td key={k} className="py-2.5 text-center text-xs text-gray-500">
+                          {((averages.scores[k] ?? 0) * 100).toFixed(0)}%
                         </td>
                       ))}
-                      <td className="py-2.5 text-right font-bold text-discord-yellow">{row.coefficient.toFixed(2)}x</td>
+                      <td className="py-2.5 text-right text-xs font-bold text-discord-yellow/60">
+                        {averages.coefficient.toFixed(2)}x
+                      </td>
                     </tr>
-                  ))}
+                  )}
                 </tbody>
               </table>
             </div>
@@ -308,6 +362,7 @@ function EvaluationTab() {
     queryKey: ['members-list'],
     queryFn: () => membersApi.list().then(r => r.data),
   })
+  const averages = useAverages()
 
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [reports, setReports] = useState<EvaluationReport[]>([])
@@ -370,7 +425,7 @@ function EvaluationTab() {
       </div>
 
       {reports.map(r => (
-        <ReportCard key={r.member_id} report={r} />
+        <ReportCard key={r.member_id} report={r} averages={averages} />
       ))}
     </div>
   )

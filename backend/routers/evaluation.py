@@ -219,6 +219,40 @@ async def relationship_axes_all(db: AsyncSession = Depends(get_db)):
     return sorted(results, key=lambda x: x["overall_relationship_score"], reverse=True)
 
 
+@router.get("/averages")
+async def score_averages(db: AsyncSession = Depends(get_db)):
+    """全メンバーの平均スコア (3軸 + 係数 + 貢献スコア + 解決件数)."""
+    scores = (await db.execute(select(NodeScore))).scalars().all()
+    if not scores:
+        return {
+            "count": 0,
+            "scores": {"認知貢献": 0.5, "関係性貢献": 0.5, "未来投資貢献": 0.5},
+            "coefficient": 1.0,
+            "contribution_score": 0.5,
+            "resolved_count": 0.0,
+        }
+    count = len(scores)
+    sums = {"認知貢献": 0.0, "関係性貢献": 0.0, "未来投資貢献": 0.0}
+    coeff_sum = 0.0
+    contrib_sum = 0.0
+    resolved_sum = 0
+    for s in scores:
+        sc = _compute_scores(s)
+        coeff = sc.pop("_coefficient")
+        for k in sums:
+            sums[k] += sc.get(k, 0.0)
+        coeff_sum += coeff
+        contrib_sum += s.contribution_score
+        resolved_sum += s.resolved_count
+    return {
+        "count": count,
+        "scores": {k: round(v / count, 3) for k, v in sums.items()},
+        "coefficient": round(coeff_sum / count, 3),
+        "contribution_score": round(contrib_sum / count, 3),
+        "resolved_count": round(resolved_sum / count, 1),
+    }
+
+
 @router.get("/report/{member_id}")
 async def evaluation_report(member_id: str, db: AsyncSession = Depends(get_db)):
     """月次評価補助レポート（3軸スコア + 6軸関係性 + 評価コメント草案）."""

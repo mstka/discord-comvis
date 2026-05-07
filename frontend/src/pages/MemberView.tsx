@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { User, ExternalLink, MessageCircle, GitMerge, Award } from 'lucide-react'
+import { User, ExternalLink, MessageCircle, GitMerge, Award, TrendingUp, TrendingDown, Minus } from 'lucide-react'
 import { membersApi, evaluationApi, type MemberSummary } from '../api/client'
 import { Tooltip } from '../components/Tooltip'
+import { useAverages } from '../hooks/useAverages'
 
 const TYPE_ICONS: Record<string, React.ElementType> = {
   '相談対応': MessageCircle,
@@ -11,20 +12,42 @@ const TYPE_ICONS: Record<string, React.ElementType> = {
   'リアクション獲得': Award,
 }
 
-function ScoreBar({ label, value }: { label: string; value: number }) {
+function ScoreBar({ label, value, avg }: { label: string; value: number; avg?: number }) {
   const pct = Math.round(value * 100)
+  const avgPct = avg !== undefined ? Math.round(avg * 100) : null
+  const delta = avgPct !== null ? pct - avgPct : null
+
   return (
     <div>
-      <div className="flex justify-between text-xs mb-1">
+      <div className="flex justify-between items-center text-xs mb-1">
         <Tooltip term={label}>{label}</Tooltip>
-        <span className="text-gray-300 font-medium tabular-nums">{pct}%</span>
+        <div className="flex items-center gap-2">
+          {delta !== null && (
+            <span className={`flex items-center gap-0.5 font-medium ${delta > 0 ? 'text-green-400' : delta < 0 ? 'text-red-400' : 'text-gray-500'}`}>
+              {delta > 0 ? <TrendingUp size={10} /> : delta < 0 ? <TrendingDown size={10} /> : <Minus size={10} />}
+              {delta > 0 ? '+' : ''}{delta}
+            </span>
+          )}
+          <span className="text-gray-300 font-medium tabular-nums">{pct}%</span>
+        </div>
       </div>
-      <div className="h-1.5 bg-gray-800 rounded-full overflow-hidden">
+      <div className="relative h-1.5 bg-gray-800 rounded-full">
         <div
-          className="h-full rounded-full bg-gradient-to-r from-discord-blurple to-purple-500 transition-all duration-500"
+          className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-discord-blurple to-purple-500 transition-all duration-500"
           style={{ width: `${pct}%` }}
         />
+        {avgPct !== null && (
+          <div
+            className="absolute top-1/2 -translate-y-1/2 w-0.5 h-3 bg-white/50 rounded-full z-10"
+            style={{ left: `${avgPct}%` }}
+          />
+        )}
       </div>
+      {avgPct !== null && (
+        <div className="flex justify-end mt-0.5">
+          <span className="text-xs text-gray-600">平均 {avgPct}%</span>
+        </div>
+      )}
     </div>
   )
 }
@@ -64,6 +87,7 @@ export default function MemberView() {
   const navigate = useNavigate()
   const [search, setSearch] = useState('')
   const [selectedId, setSelectedId] = useState<string | null>(paramId ?? null)
+  const averages = useAverages()
 
   const { data: members } = useQuery({
     queryKey: ['members-list'],
@@ -148,21 +172,31 @@ export default function MemberView() {
                 <p className="text-gray-500 text-sm mt-0.5">今月の認知貢献候補</p>
               </div>
               <div className="flex gap-3">
-                <div className="text-center px-4 py-2 bg-gray-900 border border-gray-800 rounded-xl">
+                <div className="text-center px-4 py-2 bg-gray-900 border border-gray-800 rounded-xl min-w-[80px]">
                   <p className="text-xs text-gray-500 mb-0.5">
                     <Tooltip term="貢献スコア">貢献スコア</Tooltip>
                   </p>
                   <p className="text-xl font-bold text-discord-blurple tabular-nums">
                     {(selectedMember.contribution_score * 100).toFixed(0)}%
                   </p>
+                  {averages && (
+                    <p className={`text-xs mt-0.5 font-medium ${selectedMember.contribution_score >= averages.contribution_score ? 'text-green-400' : 'text-red-400'}`}>
+                      平均 {(averages.contribution_score * 100).toFixed(0)}%
+                    </p>
+                  )}
                 </div>
-                <div className="text-center px-4 py-2 bg-gray-900 border border-gray-800 rounded-xl">
+                <div className="text-center px-4 py-2 bg-gray-900 border border-gray-800 rounded-xl min-w-[80px]">
                   <p className="text-xs text-gray-500 mb-0.5">
                     <Tooltip term="解決件数">解決件数</Tooltip>
                   </p>
                   <p className="text-xl font-bold text-discord-green tabular-nums">
                     {selectedMember.resolved_count}
                   </p>
+                  {averages && (
+                    <p className={`text-xs mt-0.5 font-medium ${selectedMember.resolved_count >= averages.resolved_count ? 'text-green-400' : 'text-red-400'}`}>
+                      平均 {averages.resolved_count.toFixed(1)}件
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -208,16 +242,28 @@ export default function MemberView() {
                 <h2 className="font-semibold mb-4 text-white text-sm">3軸スコア</h2>
                 <div className="space-y-3">
                   {(['認知貢献', '関係性貢献', '未来投資貢献'] as const).map(key => (
-                    <ScoreBar key={key} label={key} value={report.scores[key] ?? 0} />
+                    <ScoreBar
+                      key={key}
+                      label={key}
+                      value={report.scores[key] ?? 0}
+                      avg={averages?.scores[key]}
+                    />
                   ))}
                 </div>
                 <div className="mt-4 pt-4 border-t border-gray-800 flex items-center justify-between">
                   <Tooltip term="賞与参考係数">
-                    <span className="text-sm text-gray-400">賞与参考係数</span>
+                    <span className="text-sm text-gray-400">コミュニケーション係数</span>
                   </Tooltip>
-                  <span className="text-xl font-bold text-discord-yellow tabular-nums">
-                    {report.coefficient.toFixed(2)}x
-                  </span>
+                  <div className="text-right">
+                    <span className="text-xl font-bold text-discord-yellow tabular-nums">
+                      {report.coefficient.toFixed(2)}x
+                    </span>
+                    {averages && (
+                      <p className={`text-xs mt-0.5 ${report.coefficient >= averages.coefficient ? 'text-green-400' : 'text-red-400'}`}>
+                        平均 {averages.coefficient.toFixed(2)}x
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
             )}

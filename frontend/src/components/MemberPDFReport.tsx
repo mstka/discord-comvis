@@ -12,7 +12,7 @@
  *   7. Manager checkpoints
  */
 import { Document, Page, Text, View, StyleSheet, Font, pdf } from '@react-pdf/renderer'
-import type { EvaluationReport, RelationshipAxes } from '../api/client'
+import type { EvaluationReport, RelationshipAxes, FullAverages } from '../api/client'
 
 // ── Japanese font registration ────────────────────────────────────────────────
 // Font files are committed to src/assets/fonts/ as static OTF (non-variable).
@@ -104,16 +104,37 @@ const s = StyleSheet.create({
 
 // ── sub-components ────────────────────────────────────────────────────────────
 
-function AxisBar({ label, value, color }: { label: string; value: number; color: string }) {
-  const pct = `${Math.round(value * 100)}%`
+function AxisBar({ label, value, avg, color }: { label: string; value: number; avg?: number; color: string }) {
+  const score = Math.round(value * 100)
+  const avgScore = avg !== undefined ? Math.round(avg * 100) : null
+  const delta = avgScore !== null ? score - avgScore : null
+  const pct = `${score}%`
+
   return (
     <View style={s.axisRow}>
       <View style={s.axisHeader}>
         <Text style={s.axisLabel}>{label}</Text>
-        <Text style={s.axisScore}>{Math.round(value * 100)}</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          {delta !== null && (
+            <Text style={{ fontSize: 7, color: delta >= 0 ? '#10B981' : '#EF4444' }}>
+              {delta >= 0 ? '▲' : '▼'}{Math.abs(delta)} vs 平均
+            </Text>
+          )}
+          {avgScore !== null && (
+            <Text style={{ fontSize: 7, color: '#9CA3AF' }}>平均{avgScore}</Text>
+          )}
+          <Text style={s.axisScore}>{score}</Text>
+        </View>
       </View>
-      <View style={s.barBg}>
+      <View style={[s.barBg, { position: 'relative' }]}>
         <View style={[s.barFill, { width: pct, backgroundColor: color }]} />
+        {avgScore !== null && (
+          <View style={{
+            position: 'absolute', top: 0, bottom: 0,
+            left: `${avgScore}%`, width: 1.5,
+            backgroundColor: 'rgba(255,255,255,0.4)',
+          }} />
+        )}
       </View>
     </View>
   )
@@ -133,8 +154,10 @@ const AXIS_COLORS: Record<string, string> = {
 
 // ── document ──────────────────────────────────────────────────────────────────
 
-function ReportDocument({ report, axes }: { report: EvaluationReport; axes: RelationshipAxes }) {
+function ReportDocument({ report, axes, averages }: { report: EvaluationReport; axes: RelationshipAxes; averages?: FullAverages }) {
   const today = new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' })
+  const avgCoeff = averages?.coefficient
+  const coeffDelta = avgCoeff !== undefined ? report.coefficient - avgCoeff : null
 
   return (
     <Document title={`${report.display_name} 評価補助レポート`}>
@@ -149,6 +172,11 @@ function ReportDocument({ report, axes }: { report: EvaluationReport; axes: Rela
           <View style={s.headerRight}>
             <Text style={s.coeffLabel}>コミュニケーション係数</Text>
             <Text style={s.coeffValue}>{report.coefficient.toFixed(2)}<Text style={s.coeffSuffix}>x</Text></Text>
+            {avgCoeff !== undefined && (
+              <Text style={{ fontSize: 8, color: coeffDelta! >= 0 ? '#57F287' : '#ED4245', marginTop: 2 }}>
+                {coeffDelta! >= 0 ? '▲' : '▼'}{Math.abs(Math.round(coeffDelta! * 100))}pts　平均 {avgCoeff.toFixed(2)}x
+              </Text>
+            )}
           </View>
         </View>
 
@@ -157,6 +185,7 @@ function ReportDocument({ report, axes }: { report: EvaluationReport; axes: Rela
           <View style={s.card}>
             <Text style={s.cardLabel}>解決件数（累計）</Text>
             <Text style={s.cardValue}>{report.summary.total_resolved}</Text>
+            {averages && <Text style={{ fontSize: 7, color: C.muted, marginTop: 2 }}>平均 {averages.resolved_count.toFixed(1)}件</Text>}
           </View>
           <View style={s.card}>
             <Text style={s.cardLabel}>直近30日</Text>
@@ -165,9 +194,10 @@ function ReportDocument({ report, axes }: { report: EvaluationReport; axes: Rela
           <View style={s.card}>
             <Text style={s.cardLabel}>貢献スコア</Text>
             <Text style={s.cardValue}>{(report.summary.contribution_score * 100).toFixed(0)}</Text>
+            {averages && <Text style={{ fontSize: 7, color: C.muted, marginTop: 2 }}>平均 {(averages.contribution_score * 100).toFixed(0)}%</Text>}
           </View>
           <View style={s.card}>
-            <Text style={s.cardLabel}>ネットワーク中心性</Text>
+            <Text style={s.cardLabel}>中心性</Text>
             <Text style={s.cardValue}>{(report.summary.centrality * 100).toFixed(0)}</Text>
           </View>
         </View>
@@ -177,7 +207,7 @@ function ReportDocument({ report, axes }: { report: EvaluationReport; axes: Rela
           <Text style={s.sectionTitle}>3軸　貢献スコア</Text>
           <View style={s.divider} />
           {Object.entries(report.scores).map(([k, v]) => (
-            <AxisBar key={k} label={k} value={v} color={AXIS_COLORS[k] ?? C.primary} />
+            <AxisBar key={k} label={k} value={v} avg={averages?.scores[k]} color={AXIS_COLORS[k] ?? C.primary} />
           ))}
         </View>
 
@@ -186,7 +216,7 @@ function ReportDocument({ report, axes }: { report: EvaluationReport; axes: Rela
           <Text style={s.sectionTitle}>6軸　関係性指数</Text>
           <View style={s.divider} />
           {Object.entries(axes).map(([k, v]) => (
-            <AxisBar key={k} label={k} value={v} color={AXIS_COLORS[k] ?? C.primary} />
+            <AxisBar key={k} label={k} value={v} avg={averages?.relationship_axes?.[k as keyof RelationshipAxes]} color={AXIS_COLORS[k] ?? C.primary} />
           ))}
         </View>
 
@@ -209,21 +239,6 @@ function ReportDocument({ report, axes }: { report: EvaluationReport; axes: Rela
           ))}
         </View>
 
-        {/* ── MANAGER CHECKPOINTS ── */}
-        <View style={s.section}>
-          <Text style={s.sectionTitle}>マネージャー確認ポイント</Text>
-          <View style={s.divider} />
-          {report.manager_checkpoints.map((cp, i) => (
-            <View key={i} style={s.checkItem}>
-              <View style={s.bullet} />
-              <View style={{ flex: 1 }}>
-                <Text style={[s.checkText, { fontFamily: FONT, fontWeight: 'bold', color: C.dark, marginBottom: 3 }]}>{cp.point}</Text>
-                <Text style={s.checkText}>{cp.note}</Text>
-              </View>
-            </View>
-          ))}
-        </View>
-
         {/* ── FOOTER ── */}
         <View style={s.footer}>
           <Text style={s.footerText}>CBReview — このレポートはチャット分析に基づく補助資料です</Text>
@@ -236,8 +251,8 @@ function ReportDocument({ report, axes }: { report: EvaluationReport; axes: Rela
 
 // ── download helper ───────────────────────────────────────────────────────────
 
-export async function downloadMemberPDF(report: EvaluationReport, axes: RelationshipAxes) {
-  const blob = await pdf(<ReportDocument report={report} axes={axes} />).toBlob()
+export async function downloadMemberPDF(report: EvaluationReport, axes: RelationshipAxes, averages?: FullAverages) {
+  const blob = await pdf(<ReportDocument report={report} axes={axes} averages={averages} />).toBlob()
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
